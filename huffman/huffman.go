@@ -2,7 +2,6 @@ package huffman
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 )
 
@@ -37,15 +36,25 @@ func Compress(text string) (string, *Node) {
 }
 
 //Decompress ...
-func Decompress(compressed string, huffmanTree *Node) {
+func Decompress(compressed string, huffmanTree *Node) string {
 	codes := make([]string, 0)
 	for _, c := range compressed {
 		char := string(c)
 		codes = append(codes, char)
 	}
 
-	found := FindCharByCode(codes, 0, huffmanTree)
-	fmt.Println(found)
+	var i int64
+	var characters = ""
+	i = 0
+	for i < int64(len(codes)) {
+		var char string
+		char, i = FindCharByCode(codes, i, huffmanTree)
+		characters += char
+		i++
+	}
+
+	return characters
+
 }
 
 func createHuffmanTree(characters map[string]int64) *Node {
@@ -63,7 +72,6 @@ func createHuffmanTree(characters map[string]int64) *Node {
 	for len(nodes) > 1 {
 		newNode := &Node{}
 		var first, second Node
-
 		first, nodes = *nodes[0], nodes[1:]
 		second, nodes = *nodes[0], nodes[1:]
 
@@ -75,7 +83,6 @@ func createHuffmanTree(characters map[string]int64) *Node {
 
 		nodes = append(nodes, newNode)
 		sortNodesByWeight(&nodes)
-
 	}
 
 	return nodes[0]
@@ -94,9 +101,8 @@ func sortNodesByWeight(nodes *[]*Node) {
 
 //GetCodePathForChar ...
 func GetCodePathForChar(n *Node, char string, code string) (string, error) {
-
 	if n == nil {
-		return "", errors.New("Reached to end leaf without matching character")
+		return code[0 : len(code)-1], errors.New("Reached to end leaf without matching character")
 	}
 
 	if n.Left != nil && n.Left.Charachter == char {
@@ -110,7 +116,7 @@ func GetCodePathForChar(n *Node, char string, code string) (string, error) {
 		if err != nil {
 			code, err = GetCodePathForChar(n.Right, char, code+rightPathValue)
 			if err != nil {
-				return "", err
+				return code[0 : len(code)-1], err
 			}
 		}
 	}
@@ -119,19 +125,20 @@ func GetCodePathForChar(n *Node, char string, code string) (string, error) {
 }
 
 //FindCharByCode ...
-func FindCharByCode(codes []string, codeIndex int64, n *Node) string {
+func FindCharByCode(codes []string, codeIndex int64, n *Node) (string, int64) {
 	code := codes[codeIndex]
 
 	if code == leftPathValue {
 		if n.Left != nil && len(n.Left.Charachter) > 0 {
-			return n.Charachter
+			return n.Left.Charachter, codeIndex
 		}
 		codeIndex++
 
 		return FindCharByCode(codes, codeIndex, n.Left)
 	} else if code == rightPathValue {
+
 		if n.Right != nil && len(n.Right.Charachter) > 0 {
-			return n.Charachter
+			return n.Right.Charachter, codeIndex
 		}
 		codeIndex++
 

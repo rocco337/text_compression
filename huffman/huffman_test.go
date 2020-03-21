@@ -54,3 +54,9 @@ func TestHuffman(t *testing.T) {
 	})
 
 }
+
+func BenchmarkHuffmanCompress(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Compress("Huffman")
+	}
+}

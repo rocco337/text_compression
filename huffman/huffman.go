@@ -14,7 +14,7 @@ var rightPathValue = "1"
 func Compress(text string) (string, *Node) {
 	characters := make(map[string]int64)
 
-	//go through text and get characters and frwquencies
+	//go through text and get characters and frequencies
 	for _, c := range text {
 		char := string(c)
 		characters[char]++
@@ -27,7 +27,7 @@ func Compress(text string) (string, *Node) {
 	compressed := ""
 	for _, c := range text {
 		char := string(c)
-		code, err := GetCodePathForChar(huffmanTree, char, "")
+		code, err := GetCodePathForChar(huffmanTree, char)
 		if err != nil {
 			panic(err)
 		}
@@ -76,7 +76,10 @@ func createHuffmanTree(characters map[string]int64) *Node {
 		newNode := &Node{}
 
 		newNode.Left = nodes.Pop().(*Node)
+		newNode.Left.Move(leftPathValue)
+
 		newNode.Right = nodes.Pop().(*Node)
+		newNode.Right.Move(rightPathValue)
 
 		//sum weights
 		newNode.Weight = newNode.Left.Weight + newNode.Right.Weight
@@ -103,29 +106,34 @@ func getSortedMapKeys(characters map[string]int64) []string {
 }
 
 //GetCodePathForChar ...
-func GetCodePathForChar(n *Node, char string, code string) (string, error) {
+func GetCodePathForChar(n *Node, char string) (string, error) {
 	if n == nil {
-		return code[0 : len(code)-1], errors.New("Reached to end leaf without matching character")
+		return "", errors.New("Reached to end leaf without matching character")
 	}
 
 	if n.Left != nil && n.Left.Charachter == char {
-		code += leftPathValue
+		return n.Left.CodePath, nil
 	} else if n.Right != nil && n.Right.Charachter == char {
-		code += rightPathValue
+		return n.Right.CodePath, nil
 	} else {
 		var err error
 
-		code, err = GetCodePathForChar(n.Left, char, code+leftPathValue)
+		code, err := GetCodePathForChar(n.Left, char)
 
 		if err != nil {
-			code, err = GetCodePathForChar(n.Right, char, code+rightPathValue)
+			code, err = GetCodePathForChar(n.Right, char)
 			if err != nil {
-				return code[0 : len(code)-1], err
+				return "", err
 			}
+			return code, nil
+
+		} else {
+			return code, nil
 		}
 	}
 
-	return code, nil
+	panic("error")
+
 }
 
 //FindCharByCode ...
@@ -152,6 +160,19 @@ func FindCharByCode(codes string, pointer int64, n *Node) (string, int64) {
 type Node struct {
 	Charachter string
 	Weight     int64
+	CodePath   string
 	Left       *Node
 	Right      *Node
+}
+
+func (n *Node) Move(side string) {
+	n.CodePath = side + n.CodePath
+
+	if n.Left != nil {
+		n.Left.Move(side)
+	}
+
+	if n.Right != nil {
+		n.Right.Move(side)
+	}
 }

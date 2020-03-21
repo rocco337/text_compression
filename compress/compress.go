@@ -1,13 +1,15 @@
 package compress
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
+	"os"
 	"path"
 	"sort"
+	"strconv"
 
 	"text_compression/huffman"
 )
@@ -29,17 +31,21 @@ func Compress(filePath string) (string, error) {
 
 	compressed, huffman := huffman.Compress(string(fileBytes))
 
-	fmt.Println(len(compressed))
-	js, _ := json.Marshal(huffman)
-
 	outfile := filePath[0:len(filePath)-len(extension)] + outputExtension
-	ioutil.WriteFile(outfile+".json", js, 0644)
 
-	err = ioutil.WriteFile(outfile, compressed, 0644)
+	var huffmanTreeContent bytes.Buffer
+	binary.Write(&huffmanTreeContent, binary.BigEndian, huffman)
+
+	file, err := os.Create(outfile)
+	check(err)
+
+	file.Write(huffmanTreeContent.Bytes())
+	file.WriteString(fmt.Sprintln())
+	file.Write(asByteSlice(compressed))
 
 	check(err)
 
-	return "", nil
+	return outfile, nil
 }
 
 func contains(s []string, searchterm string) bool {
@@ -53,10 +59,21 @@ func check(e error) {
 	}
 }
 
-func isEndOfFile(e error) bool {
-	if e == nil {
-		return false
-	}
+func asByteSlice(b string) []byte {
+	var out []byte
+	var str string
 
-	return e == io.EOF
+	for i := len(b); i > 0; i -= 8 {
+		if i-8 < 0 {
+			str = string(b[0:i])
+		} else {
+			str = string(b[i-8 : i])
+		}
+		v, err := strconv.ParseUint(str, 2, 8)
+		if err != nil {
+			panic(err)
+		}
+		out = append([]byte{byte(v)}, out...)
+	}
+	return out
 }

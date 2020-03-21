@@ -2,14 +2,15 @@ package huffman
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 )
 
-var leftPathValue = 0
-var rightPathValue = 1
+var leftPathValue = "0"
+var rightPathValue = "1"
 
 //Compress ...
-func Compress(text string) ([]byte, *Node) {
+func Compress(text string) (string, *Node) {
 	characters := make(map[string]int64)
 
 	//go through text and get characters and frwquencies
@@ -22,21 +23,21 @@ func Compress(text string) ([]byte, *Node) {
 	huffmanTree := createHuffmanTree(characters)
 
 	//construct codes from tree
-	compressed := make([]byte, 0)
+	compressed := ""
 	for _, c := range text {
 		char := string(c)
-		code, err := GetCodePathForChar(huffmanTree, char, make([]byte, 0))
+		code, err := GetCodePathForChar(huffmanTree, char, "")
 		if err != nil {
 			panic(err)
 		}
-		compressed = append(compressed[:], code[:]...)
+		compressed += code
 	}
 
 	return compressed, huffmanTree
 }
 
 //Decompress ...
-func Decompress(compressed []byte, huffmanTree *Node) string {
+func Decompress(compressed string, huffmanTree *Node) string {
 
 	var pointer int64
 	var decompressed = ""
@@ -99,24 +100,22 @@ func sortNodesByWeight(nodes *[]*Node) {
 }
 
 //GetCodePathForChar ...
-func GetCodePathForChar(n *Node, char string, code []byte) ([]byte, error) {
+func GetCodePathForChar(n *Node, char string, code string) (string, error) {
 	if n == nil {
 		return code[0 : len(code)-1], errors.New("Reached to end leaf without matching character")
 	}
 
 	if n.Left != nil && n.Left.Charachter == char {
-		code = append(code, 0)
+		code += leftPathValue
 	} else if n.Right != nil && n.Right.Charachter == char {
-		code = append(code, 1)
+		code += rightPathValue
 	} else {
 		var err error
-		code = append(code, 0)
 
-		code, err = GetCodePathForChar(n.Left, char, code)
+		code, err = GetCodePathForChar(n.Left, char, code+leftPathValue)
 
 		if err != nil {
-			code = append(code, 1)
-			code, err = GetCodePathForChar(n.Right, char, code)
+			code, err = GetCodePathForChar(n.Right, char, code+rightPathValue)
 			if err != nil {
 				return code[0 : len(code)-1], err
 			}
@@ -127,16 +126,15 @@ func GetCodePathForChar(n *Node, char string, code []byte) ([]byte, error) {
 }
 
 //FindCharByCode ...
-func FindCharByCode(codes []byte, pointer int64, n *Node) (string, int64) {
-	code := codes[pointer]
-
-	if code == 0 {
+func FindCharByCode(codes string, pointer int64, n *Node) (string, int64) {
+	code := string(codes[pointer])
+	if code == leftPathValue {
 		if n.Left != nil && len(n.Left.Charachter) > 0 {
 			return n.Left.Charachter, pointer
 		}
 		pointer++
 		return FindCharByCode(codes, pointer, n.Left)
-	} else if code == 1 {
+	} else if code == rightPathValue {
 		if n.Right != nil && len(n.Right.Charachter) > 0 {
 			return n.Right.Charachter, pointer
 		}
@@ -144,7 +142,7 @@ func FindCharByCode(codes []byte, pointer int64, n *Node) (string, int64) {
 		pointer++
 		return FindCharByCode(codes, pointer, n.Right)
 	}
-	panic("Code " + string(code) + " is not supported")
+	panic(fmt.Sprintf("Code %s is not supported", code))
 }
 
 //Node ...

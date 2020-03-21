@@ -1,6 +1,7 @@
 package huffman
 
 import (
+	"container/heap"
 	"errors"
 	"fmt"
 	"sort"
@@ -55,48 +56,50 @@ func Decompress(compressed string, huffmanTree *Node) string {
 }
 
 func createHuffmanTree(characters map[string]int64) *Node {
-	nodes := make([]*Node, 0)
-	for key, value := range characters {
+	nodes := make(PriorityQueue, len(characters))
+
+	i := 0
+	for _, key := range getSortedMapKeys(characters) {
 		node := &Node{}
 		node.Charachter = key
-		node.Weight = value
+		node.Weight = characters[key]
 
-		nodes = append(nodes, node)
+		nodes[i] = &Item{
+			value: node,
+			index: i,
+		}
+		i++
 	}
-
-	sortNodesByWeight(&nodes)
+	heap.Init(&nodes)
 
 	for len(nodes) > 1 {
 		newNode := &Node{}
 
-		var first, second Node
-		first, nodes = *nodes[0], nodes[1:]
-		second, nodes = *nodes[0], nodes[1:]
-
-		newNode.Left = &first
-		newNode.Right = &second
+		newNode.Left = nodes.Pop().(*Node)
+		newNode.Right = nodes.Pop().(*Node)
 
 		//sum weights
-		newNode.Weight = first.Weight + second.Weight
+		newNode.Weight = newNode.Left.Weight + newNode.Right.Weight
 
-		nodes = append(nodes, newNode)
-		sortNodesByWeight(&nodes)
+		newPriorityQueueItem := &Item{
+			value: newNode,
+		}
+
+		heap.Push(&nodes, newPriorityQueueItem)
+		nodes.update(newPriorityQueueItem, newPriorityQueueItem.value)
 	}
 
-	return nodes[0]
+	return nodes[0].value
 }
 
-func sortNodesByWeight(nodes *[]*Node) {
+func getSortedMapKeys(characters map[string]int64) []string {
+	keys := make([]string, 0, len(characters))
+	for k, _ := range characters {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
-	//sort first by name
-	sort.Slice(*nodes, func(i, j int) bool {
-		return (*nodes)[i].Charachter < (*nodes)[j].Charachter
-	})
-
-	//sort by weight
-	sort.Slice(*nodes, func(i, j int) bool {
-		return (*nodes)[i].Weight < (*nodes)[j].Weight
-	})
+	return keys
 }
 
 //GetCodePathForChar ...

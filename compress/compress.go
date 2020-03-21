@@ -1,16 +1,15 @@
 package compress
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"path"
 	"sort"
+
+	"text_compression/huffman"
 )
 
 var outputExtension = ".ztxt"
@@ -25,43 +24,18 @@ func Compress(filePath string) (string, error) {
 		return "", errors.New("Unsupported extension: " + extension)
 	}
 
-	file, err := os.Open(filePath)
+	fileBytes, err := ioutil.ReadFile(filePath)
 	check(err)
 
-	r := bufio.NewReader(file)
-	tokens := make(map[string][]int)
-	token := ""
-	tokenPosition := 0
+	compressed, huffman := huffman.Compress(string(fileBytes))
 
-	for {
-		c, _, err := r.ReadRune()
-		if isEndOfFile(err) {
-			break
-		}
-		check(err)
-
-		token = token + string(c)
-		if len(token) == defaultTokenSize {
-			tokens[token] = append(tokens[token], tokenPosition)
-			tokenPosition++
-			token = ""
-		}
-	}
+	fmt.Println(len(compressed))
+	js, _ := json.Marshal(huffman)
 
 	outfile := filePath[0:len(filePath)-len(extension)] + outputExtension
+	ioutil.WriteFile(outfile+".json", js, 0644)
 
-	json, err := json.Marshal(tokens)
-	b := new(bytes.Buffer)
-
-	e := gob.NewEncoder(b)
-
-	err = e.Encode(tokens)
-	check(err)
-
-	err = ioutil.WriteFile(outfile, b.Bytes(), 0644)
-
-	outfile = filePath[0:len(filePath)-len(extension)] + ".json"
-	err = ioutil.WriteFile(outfile, json, 0644)
+	err = ioutil.WriteFile(outfile, compressed, 0644)
 
 	check(err)
 

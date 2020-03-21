@@ -7,12 +7,16 @@ import (
 func TestHuffman(t *testing.T) {
 
 	t.Run("Compress - should pass", func(t *testing.T) {
-		expected := "010001111100011101"
+		expected := []byte{0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1}
 
 		actual, _ := Compress("Huffman")
 
-		if expected != actual {
-			t.Error("Expected " + expected + ", actual " + actual)
+		for i := range actual {
+			if actual[i] != expected[i] {
+				t.Error("Expected : ", expected, "Actual: ", actual)
+				break
+
+			}
 		}
 	})
 

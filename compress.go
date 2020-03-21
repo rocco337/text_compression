@@ -1,8 +1,7 @@
-package compress
+package textcompression
 
 import (
-	"bytes"
-	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,11 +18,11 @@ var supportedExtensions = []string{".txt"}
 var defaultTokenSize = 3
 
 //Compress ... reads a file, compress it and save new one
-func Compress(filePath string) (string, error) {
+func Compress(filePath string, outputfilePath string) error {
 
 	extension := path.Ext(filePath)
 	if !contains(supportedExtensions, extension) {
-		return "", errors.New("Unsupported extension: " + extension)
+		return errors.New("Unsupported extension: " + extension)
 	}
 
 	fileBytes, err := ioutil.ReadFile(filePath)
@@ -31,21 +30,20 @@ func Compress(filePath string) (string, error) {
 
 	compressed, huffman := huffman.Compress(string(fileBytes))
 
-	outfile := filePath[0:len(filePath)-len(extension)] + outputExtension
-
-	var huffmanTreeContent bytes.Buffer
-	binary.Write(&huffmanTreeContent, binary.BigEndian, huffman)
-
-	file, err := os.Create(outfile)
+	huffmanTreeBytes, err := json.Marshal(huffman)
 	check(err)
 
-	file.Write(huffmanTreeContent.Bytes())
-	file.WriteString(fmt.Sprintln())
-	file.Write(asByteSlice(compressed))
+	file, err := os.Create(outputfilePath)
+	defer file.Close()
+	check(err)
+
+	file.Write(huffmanTreeBytes)
+	file.Write([]byte(fmt.Sprintln()))
+	file.Write([]byte(compressed))
 
 	check(err)
 
-	return outfile, nil
+	return nil
 }
 
 func contains(s []string, searchterm string) bool {

@@ -3,7 +3,6 @@ package huffman
 import (
 	"container/heap"
 	"errors"
-	"fmt"
 	"sort"
 )
 
@@ -27,8 +26,6 @@ func Compress(text string) (string, *Node) {
 
 	GenerateCodeTable(huffmanTree, &codeTables)
 
-	fmt.Println(codeTables)
-
 	//construct codes from tree
 	compressed := ""
 	for _, c := range text {
@@ -42,15 +39,20 @@ func Compress(text string) (string, *Node) {
 //Decompress ...
 func Decompress(compressed string, huffmanTree *Node) string {
 
+	codeTables := make(map[string]string)
+	GenerateCodeTable(huffmanTree, &codeTables)
+	codeCharTable := InverseMap(&codeTables)
+
 	var pointer int64
 	var decompressed = ""
+	codeBuffer := ""
 	pointer = 0
 	for pointer < int64(len(compressed)) {
-		var char string
-
-		//find first matching character and move pointer forward
-		char, pointer = FindCharByCode(compressed, pointer, huffmanTree)
-		decompressed += char
+		codeBuffer += string(compressed[pointer])
+		if char, ok := codeCharTable[codeBuffer]; ok {
+			decompressed += char
+			codeBuffer = ""
+		}
 		pointer++
 	}
 
@@ -152,6 +154,17 @@ func GenerateCodeTable(n *Node, codesTable *map[string]string) {
 	if n.Right != nil {
 		GenerateCodeTable(n.Right, codesTable)
 	}
+}
+
+//InverseMap ...
+func InverseMap(codes *map[string]string) map[string]string {
+	inversed := make(map[string]string, 0)
+
+	for key, value := range *codes {
+		inversed[value] = key
+	}
+
+	return inversed
 }
 
 //Node ...

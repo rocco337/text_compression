@@ -23,15 +23,17 @@ func Compress(text string) (string, *Node) {
 	//create tree
 	huffmanTree := createHuffmanTree(characters)
 
+	codeTables := make(map[string]string)
+
+	GenerateCodeTable(huffmanTree, &codeTables)
+
+	fmt.Println(codeTables)
+
 	//construct codes from tree
 	compressed := ""
 	for _, c := range text {
 		char := string(c)
-		code, err := GetCodePathForChar(huffmanTree, char)
-		if err != nil {
-			panic(err)
-		}
-		compressed += code
+		compressed += codeTables[char]
 	}
 
 	return compressed, huffmanTree
@@ -97,7 +99,7 @@ func createHuffmanTree(characters map[string]int64) *Node {
 
 func getSortedMapKeys(characters map[string]int64) []string {
 	keys := make([]string, 0, len(characters))
-	for k, _ := range characters {
+	for k := range characters {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -120,40 +122,36 @@ func GetCodePathForChar(n *Node, char string) (string, error) {
 
 		code, err := GetCodePathForChar(n.Left, char)
 
-		if err != nil {
-			code, err = GetCodePathForChar(n.Right, char)
-			if err != nil {
-				return "", err
-			}
-			return code, nil
-
-		} else {
+		if err == nil {
 			return code, nil
 		}
+
+		code, err = GetCodePathForChar(n.Right, char)
+		if err != nil {
+			return "", err
+		}
+		return code, nil
 	}
-
-	panic("error")
-
 }
 
-//FindCharByCode ...
-func FindCharByCode(codes string, pointer int64, n *Node) (string, int64) {
-	code := string(codes[pointer])
-	if code == leftPathValue {
-		if n.Left != nil && len(n.Left.Charachter) > 0 {
-			return n.Left.Charachter, pointer
-		}
-		pointer++
-		return FindCharByCode(codes, pointer, n.Left)
-	} else if code == rightPathValue {
-		if n.Right != nil && len(n.Right.Charachter) > 0 {
-			return n.Right.Charachter, pointer
-		}
-
-		pointer++
-		return FindCharByCode(codes, pointer, n.Right)
+//GenerateCodeTable ...
+func GenerateCodeTable(n *Node, codesTable *map[string]string) {
+	if n == nil {
+		return
 	}
-	panic(fmt.Sprintf("Code %s is not supported", code))
+
+	if len(n.Charachter) > 0 {
+		(*codesTable)[n.Charachter] = n.CodePath
+		return
+	}
+
+	if n.Left != nil {
+		GenerateCodeTable(n.Left, codesTable)
+	}
+
+	if n.Right != nil {
+		GenerateCodeTable(n.Right, codesTable)
+	}
 }
 
 //Node ...

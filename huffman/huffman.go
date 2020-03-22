@@ -2,8 +2,9 @@ package huffman
 
 import (
 	"container/heap"
-	"errors"
+	"fmt"
 	"sort"
+	"strings"
 )
 
 var leftPathValue = "0"
@@ -63,6 +64,8 @@ func createHuffmanTree(characters map[string]int64) *Node {
 	nodes := make(PriorityQueue, len(characters))
 
 	i := 0
+
+	//create all characters as leaf nodes. Make sure they are sorted
 	for _, key := range getSortedMapKeys(characters) {
 		node := &Node{}
 		node.Charachter = key
@@ -74,16 +77,22 @@ func createHuffmanTree(characters map[string]int64) *Node {
 		}
 		i++
 	}
+
+	//initiate priority queue. Makes sure that we always pop nodes with lowest weight
 	heap.Init(&nodes)
 
+	leftCodePath := uint(0)
+	rightCodePath := uint(1)
+
+	//construct huffman tree
 	for len(nodes) > 1 {
 		newNode := &Node{}
 
 		newNode.Left = nodes.Pop().(*Node)
-		newNode.Left.Move(leftPathValue)
-
 		newNode.Right = nodes.Pop().(*Node)
-		newNode.Right.Move(rightPathValue)
+
+		newNode.Left.UpdateCodePath(leftCodePath)
+		newNode.Right.UpdateCodePath(rightCodePath)
 
 		//sum weights
 		newNode.Weight = newNode.Left.Weight + newNode.Right.Weight
@@ -109,33 +118,6 @@ func getSortedMapKeys(characters map[string]int64) []string {
 	return keys
 }
 
-//GetCodePathForChar ...
-func GetCodePathForChar(n *Node, char string) (string, error) {
-	if n == nil {
-		return "", errors.New("Reached to end leaf without matching character")
-	}
-
-	if n.Left != nil && n.Left.Charachter == char {
-		return n.Left.CodePath, nil
-	} else if n.Right != nil && n.Right.Charachter == char {
-		return n.Right.CodePath, nil
-	} else {
-		var err error
-
-		code, err := GetCodePathForChar(n.Left, char)
-
-		if err == nil {
-			return code, nil
-		}
-
-		code, err = GetCodePathForChar(n.Right, char)
-		if err != nil {
-			return "", err
-		}
-		return code, nil
-	}
-}
-
 //GenerateCodeTable ...
 func GenerateCodeTable(n *Node, codesTable *map[string]string) {
 	if n == nil {
@@ -143,7 +125,7 @@ func GenerateCodeTable(n *Node, codesTable *map[string]string) {
 	}
 
 	if len(n.Charachter) > 0 {
-		(*codesTable)[n.Charachter] = n.CodePath
+		(*codesTable)[n.Charachter] = joinUintArrayToString(n.CodePath)
 		return
 	}
 
@@ -171,19 +153,29 @@ func InverseMap(codes *map[string]string) map[string]string {
 type Node struct {
 	Charachter string
 	Weight     int64
-	CodePath   string
+	CodePath   []uint
 	Left       *Node
 	Right      *Node
 }
 
-func (n *Node) Move(side string) {
-	n.CodePath = side + n.CodePath
-
+//UpdateCodePath ...
+func (n *Node) UpdateCodePath(side uint) {
+	n.CodePath = append([]uint{side}, n.CodePath...)
 	if n.Left != nil {
-		n.Left.Move(side)
+		n.Left.UpdateCodePath(side)
 	}
 
 	if n.Right != nil {
-		n.Right.Move(side)
+		n.Right.UpdateCodePath(side)
 	}
+}
+
+func joinUintArrayToString(array []uint) string {
+	result := new(strings.Builder)
+
+	for _, item := range array {
+		result.WriteString(fmt.Sprintf("%d", item))
+	}
+
+	return result.String()
 }

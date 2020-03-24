@@ -2,9 +2,7 @@ package huffman
 
 import (
 	"container/heap"
-	"fmt"
 	"sort"
-	"strings"
 )
 
 //Compress ...
@@ -39,6 +37,8 @@ func Decompress(compressed string, huffmanTree *Node) string {
 
 	codeTables := make(map[string]string)
 	GenerateCodeTable(huffmanTree, &codeTables)
+
+	// Conver map where key is character and value codepath to map where key is codemap and value is character
 	codeCharTable := InverseMap(&codeTables)
 
 	var pointer int64
@@ -144,47 +144,4 @@ func InverseMap(codes *map[string]string) map[string]string {
 	}
 
 	return inversed
-}
-
-//Node ...
-type Node struct {
-	Charachter string
-	Weight     int64
-	CodePath   *BitArray
-	Nodes      []*Node
-}
-
-//UpdateCodePath ...
-func (n *Node) UpdateCodePath(side uint32) {
-	n.CodePath.Preprend(side)
-
-	for _, node := range n.Nodes {
-		node.UpdateCodePath(side)
-	}
-}
-
-//BitArray
-type BitArray struct {
-	Value []uint32
-	Len   uint
-}
-
-// Preprend ....
-func (b *BitArray) Preprend(val uint32) {
-	b.Value = append(b.Value, val)
-	b.Len++
-}
-
-// Preprend ....
-func (b *BitArray) String() string {
-	result := new(strings.Builder)
-
-	var i int
-	i = int(b.Len - 1)
-	for i >= 0 {
-		result.WriteString(fmt.Sprintf("%d", b.Value[i]))
-		i--
-	}
-
-	return result.String()
 }

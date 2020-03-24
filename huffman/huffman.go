@@ -26,7 +26,7 @@ func Compress(text string) (string, *Node) {
 	codeTables := make(map[string]string)
 
 	GenerateCodeTable(huffmanTree, &codeTables)
-
+	fmt.Println(codeTables)
 	//construct codes from tree
 	compressed := ""
 	for _, c := range text {
@@ -87,15 +87,18 @@ func createHuffmanTree(characters map[string]int64) *Node {
 	//construct huffman tree
 	for len(nodes) > 1 {
 		newNode := &Node{}
+		newNode.Nodes = make([]*Node, 2)
 
-		newNode.Left = nodes.Pop().(*Node)
-		newNode.Right = nodes.Pop().(*Node)
+		newNode.Nodes[0] = nodes.Pop().(*Node)
+		newNode.Nodes[1] = nodes.Pop().(*Node)
 
-		newNode.Left.UpdateCodePath(leftCodePath)
-		newNode.Right.UpdateCodePath(rightCodePath)
+		newNode.Nodes[0].UpdateCodePath(leftCodePath)
+		newNode.Nodes[1].UpdateCodePath(rightCodePath)
 
-		//sum weights
-		newNode.Weight = newNode.Left.Weight + newNode.Right.Weight
+		for _, node := range newNode.Nodes {
+			//sum weights
+			newNode.Weight += node.Weight
+		}
 
 		newPriorityQueueItem := &Item{
 			value: newNode,
@@ -129,12 +132,8 @@ func GenerateCodeTable(n *Node, codesTable *map[string]string) {
 		return
 	}
 
-	if n.Left != nil {
-		GenerateCodeTable(n.Left, codesTable)
-	}
-
-	if n.Right != nil {
-		GenerateCodeTable(n.Right, codesTable)
+	for _, node := range n.Nodes {
+		GenerateCodeTable(node, codesTable)
 	}
 }
 
@@ -154,19 +153,15 @@ type Node struct {
 	Charachter string
 	Weight     int64
 	CodePath   []uint
-	Left       *Node
-	Right      *Node
+	Nodes      []*Node
 }
 
 //UpdateCodePath ...
 func (n *Node) UpdateCodePath(side uint) {
 	n.CodePath = append([]uint{side}, n.CodePath...)
-	if n.Left != nil {
-		n.Left.UpdateCodePath(side)
-	}
 
-	if n.Right != nil {
-		n.Right.UpdateCodePath(side)
+	for _, node := range n.Nodes {
+		node.UpdateCodePath(side)
 	}
 }
 

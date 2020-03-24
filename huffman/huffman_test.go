@@ -44,12 +44,12 @@ func TestHuffman(t *testing.T) {
 			t.Error("Expected: 7", "Actual :", tree.Weight)
 		}
 
-		if tree.Left.Weight != 3 {
-			t.Error("Expected: 3", "Actual :", tree.Left.Weight)
+		if tree.Nodes[0].Weight != 3 {
+			t.Error("Expected: 3", "Actual :", tree.Nodes[0].Weight)
 		}
 
-		if tree.Right.Weight != 4 {
-			t.Error("Expected: 3", "Actual :", tree.Right.Weight)
+		if tree.Nodes[1].Weight != 4 {
+			t.Error("Expected: 3", "Actual :", tree.Nodes[1].Weight)
 		}
 	})
 

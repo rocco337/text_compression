@@ -7,9 +7,6 @@ import (
 	"strings"
 )
 
-var leftPathValue = "0"
-var rightPathValue = "1"
-
 //Compress ...
 func Compress(text string) (string, *Node) {
 	characters := make(map[string]int64)
@@ -26,7 +23,7 @@ func Compress(text string) (string, *Node) {
 	codeTables := make(map[string]string)
 
 	GenerateCodeTable(huffmanTree, &codeTables)
-	fmt.Println(codeTables)
+
 	//construct codes from tree
 	compressed := ""
 	for _, c := range text {
@@ -70,6 +67,7 @@ func createHuffmanTree(characters map[string]int64) *Node {
 		node := &Node{}
 		node.Charachter = key
 		node.Weight = characters[key]
+		node.CodePath = new(BitArray)
 
 		nodes[i] = &Item{
 			value: node,
@@ -81,13 +79,14 @@ func createHuffmanTree(characters map[string]int64) *Node {
 	//initiate priority queue. Makes sure that we always pop nodes with lowest weight
 	heap.Init(&nodes)
 
-	leftCodePath := uint(0)
-	rightCodePath := uint(1)
+	leftCodePath := uint32(0)
+	rightCodePath := uint32(1)
 
 	//construct huffman tree
 	for len(nodes) > 1 {
 		newNode := &Node{}
 		newNode.Nodes = make([]*Node, 2)
+		newNode.CodePath = new(BitArray)
 
 		newNode.Nodes[0] = nodes.Pop().(*Node)
 		newNode.Nodes[1] = nodes.Pop().(*Node)
@@ -128,8 +127,7 @@ func GenerateCodeTable(n *Node, codesTable *map[string]string) {
 	}
 
 	if len(n.Charachter) > 0 {
-		(*codesTable)[n.Charachter] = joinUintArrayToString(n.CodePath)
-		return
+		(*codesTable)[n.Charachter] = n.CodePath.String()
 	}
 
 	for _, node := range n.Nodes {
@@ -152,24 +150,40 @@ func InverseMap(codes *map[string]string) map[string]string {
 type Node struct {
 	Charachter string
 	Weight     int64
-	CodePath   []uint
+	CodePath   *BitArray
 	Nodes      []*Node
 }
 
 //UpdateCodePath ...
-func (n *Node) UpdateCodePath(side uint) {
-	n.CodePath = append([]uint{side}, n.CodePath...)
+func (n *Node) UpdateCodePath(side uint32) {
+	n.CodePath.Preprend(side)
 
 	for _, node := range n.Nodes {
 		node.UpdateCodePath(side)
 	}
 }
 
-func joinUintArrayToString(array []uint) string {
+//BitArray
+type BitArray struct {
+	Value []uint32
+	Len   uint
+}
+
+// Preprend ....
+func (b *BitArray) Preprend(val uint32) {
+	b.Value = append(b.Value, val)
+	b.Len++
+}
+
+// Preprend ....
+func (b *BitArray) String() string {
 	result := new(strings.Builder)
 
-	for _, item := range array {
-		result.WriteString(fmt.Sprintf("%d", item))
+	var i int
+	i = int(b.Len - 1)
+	for i >= 0 {
+		result.WriteString(fmt.Sprintf("%d", b.Value[i]))
+		i--
 	}
 
 	return result.String()

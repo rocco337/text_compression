@@ -53,6 +53,16 @@ func TestHuffman(t *testing.T) {
 		}
 	})
 
+	t.Run("Decompress - should pass", func(t *testing.T) {
+		expected := "Huffman is good algorithm"
+		compressed, huffmanTree := Compress(expected)
+
+		actual := Decompress(compressed, huffmanTree)
+		if actual != expected {
+			t.Error("Expected: ", expected, "Actual: ", actual)
+		}
+	})
+
 }
 
 func BenchmarkHuffmanCompress(b *testing.B) {

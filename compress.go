@@ -28,7 +28,7 @@ func Compress(filePath string, outputfilePath string) error {
 	fileBytes, err := ioutil.ReadFile(filePath)
 	check(err)
 
-	compressed, huffman := huffman.Compress(string(fileBytes))
+	compressed, huffman := huffman.Compress(fileBytes)
 
 	huffmanTreeBytes, err := json.Marshal(huffman)
 	check(err)

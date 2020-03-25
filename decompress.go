@@ -19,7 +19,7 @@ func Decompress(filePath string) string {
 	huffmanTreeBytes, err := scanner.ReadBytes('\n')
 	check(err)
 
-	var huffmanTree huffman.Node
+	var huffmanTree huffman.HuffmanTree
 	err = json.Unmarshal(huffmanTreeBytes, &huffmanTree)
 	if err != nil {
 		log.Fatal("decode error:", err)
@@ -30,6 +30,6 @@ func Decompress(filePath string) string {
 		panic(err)
 	}
 
-	decompressed := huffman.Decompress(string(compressedContentBytes), &huffmanTree)
+	decompressed := huffman.Decompress(compressedContentBytes, &huffmanTree)
 	return decompressed
 }

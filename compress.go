@@ -1,8 +1,9 @@
 package textcompression
 
 import (
+	"bytes"
 	"encoding/binary"
-	"encoding/json"
+	"encoding/gob"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -18,18 +19,19 @@ func Compress(filePath string, outputfilePath string) error {
 
 	compressed, huffmanTree := huffman.Compress(fileBytes)
 
-	huffmanTreeBytes, err := json.Marshal(huffmanTree)
+	var huffmanTreeBytes bytes.Buffer
+	enc := gob.NewEncoder(&huffmanTreeBytes)
+	err = enc.Encode(huffmanTree)
 	check(err)
 
 	bs := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bs, uint64(len(huffmanTreeBytes)))
-
+	binary.LittleEndian.PutUint64(bs, uint64(huffmanTreeBytes.Len()))
 	file, err := os.Create(outputfilePath)
 	defer file.Close()
 	check(err)
 
 	file.Write(bs)
-	file.Write(huffmanTreeBytes)
+	file.Write(huffmanTreeBytes.Bytes())
 	file.Write(compressed)
 
 	check(err)

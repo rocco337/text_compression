@@ -2,8 +2,9 @@ package textcompression
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
-	"encoding/json"
+	"encoding/gob"
 	"io"
 	"os"
 	"text_compression/huffman"
@@ -39,7 +40,8 @@ func Decompress(filePath string) string {
 	}
 
 	var huffmanTree huffman.HuffmanTree
-	err = json.Unmarshal(huffmanTreeBytes, &huffmanTree)
+	dec := gob.NewDecoder(bytes.NewReader(huffmanTreeBytes))
+	err = dec.Decode(&huffmanTree)
 	check(err)
 
 	compressedContentBytes := make([]byte, 0)

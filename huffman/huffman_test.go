@@ -52,13 +52,13 @@ func TestHuffman(t *testing.T) {
 	})
 
 	t.Run("createHuffmanTree - should pass", func(t *testing.T) {
-		characters := make(map[string]*Frequency, 0)
-		characters["f"] = &Frequency{Count: 2}
-		characters["a"] = &Frequency{Count: 1}
-		characters["m"] = &Frequency{Count: 1}
-		characters["u"] = &Frequency{Count: 1}
-		characters["n"] = &Frequency{Count: 1}
-		characters["H"] = &Frequency{Count: 1}
+		characters := make(map[string]uint, 0)
+		characters["f"] = 2
+		characters["a"] = 1
+		characters["m"] = 1
+		characters["u"] = 1
+		characters["n"] = 1
+		characters["H"] = 1
 
 		tree := createHuffmanTree(characters)
 

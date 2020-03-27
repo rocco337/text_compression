@@ -9,17 +9,10 @@ import (
 
 //Compress ...
 func Compress(input []byte) ([]byte, *HuffmanTree) {
-	characters := make(map[string]*Frequency)
+	characters := make(map[string]uint)
 
 	for _, b := range input {
-		freq := new(Frequency)
-		freq.Key = string(b)
-
-		if characters[freq.Key] == nil {
-			characters[freq.Key] = freq
-		}
-
-		characters[freq.Key].Count++
+		characters[string(b)]++
 	}
 
 	//create tree
@@ -55,10 +48,10 @@ func Decompress(compressed []byte, huffmanTree *HuffmanTree) string {
 	byteArray.SetBytes(compressed)
 
 	temp := BitArray{}
-	i := 0
+	var i uint
 
-	for uint(i) < huffmanTree.Length {
-		temp.Append(byteArray.Bit(i))
+	for i < huffmanTree.Length {
+		temp.Append(byteArray.Bit(int(i)))
 
 		char, err := FindCharacterByCodePath(huffmanTree.Root, &temp, 0)
 		if err == nil {
@@ -72,7 +65,7 @@ func Decompress(compressed []byte, huffmanTree *HuffmanTree) string {
 	return decompressed
 }
 
-func createHuffmanTree(characters map[string]*Frequency) *Node {
+func createHuffmanTree(characters map[string]uint) *Node {
 	nodes := make(PriorityQueue, len(characters))
 
 	i := 0
@@ -81,7 +74,7 @@ func createHuffmanTree(characters map[string]*Frequency) *Node {
 	for _, key := range getSortedMapKeys(characters) {
 		node := &Node{}
 		node.Charachter = key
-		node.Weight = characters[key].Count
+		node.Weight = characters[key]
 		node.CodePath = new(BitArray)
 
 		nodes[i] = &Item{
@@ -125,7 +118,7 @@ func createHuffmanTree(characters map[string]*Frequency) *Node {
 	return nodes[0].value
 }
 
-func getSortedMapKeys(characters map[string]*Frequency) []string {
+func getSortedMapKeys(characters map[string]uint) []string {
 	keys := make([]string, 0, len(characters))
 	for k := range characters {
 		keys = append(keys, k)
@@ -148,14 +141,6 @@ func GenerateCodeTable(n *Node, codesTable *map[string]*BitArray) {
 	for _, node := range n.Nodes {
 		GenerateCodeTable(node, codesTable)
 	}
-}
-
-//todo remove
-//Frequency ...
-type Frequency struct {
-	Key      string
-	Count    uint64
-	CodePath []byte
 }
 
 //FindCharacterByCodePath ...

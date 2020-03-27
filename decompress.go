@@ -2,9 +2,9 @@ package textcompression
 
 import (
 	"bufio"
+	"encoding/binary"
 	"encoding/json"
 	"io"
-	"log"
 	"os"
 	"text_compression/huffman"
 )
@@ -15,19 +15,45 @@ func Decompress(filePath string) string {
 	defer file.Close()
 	check(err)
 
-	scanner := bufio.NewReader(file)
-	huffmanTreeBytes, err := scanner.ReadBytes('\n')
-	check(err)
+	reader := bufio.NewReader(file)
+
+	i := 0
+	huffmanTreeLengthBytes := make([]byte, 8)
+
+	for i < 8 {
+		currentByte, err := reader.ReadByte()
+		check(err)
+
+		huffmanTreeLengthBytes[i] = currentByte
+		i++
+	}
+	huffmanTreeLength := binary.LittleEndian.Uint64(huffmanTreeLengthBytes)
+	huffmanTreeBytes := make([]byte, huffmanTreeLength)
+	j := 0
+	for uint64(i) < huffmanTreeLength+8 {
+		currentByte, err := reader.ReadByte()
+		check(err)
+		huffmanTreeBytes[j] = currentByte
+		j++
+		i++
+	}
 
 	var huffmanTree huffman.HuffmanTree
 	err = json.Unmarshal(huffmanTreeBytes, &huffmanTree)
-	if err != nil {
-		log.Fatal("decode error:", err)
-	}
+	check(err)
 
-	compressedContentBytes, err := scanner.ReadBytes('\n')
-	if err != io.EOF {
-		panic(err)
+	compressedContentBytes := make([]byte, 0)
+
+	for {
+		currentByte, err := reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				panic(err)
+			}
+		}
+		compressedContentBytes = append(compressedContentBytes, currentByte)
 	}
 
 	decompressed := huffman.Decompress(compressedContentBytes, &huffmanTree)

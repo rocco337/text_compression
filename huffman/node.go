@@ -3,7 +3,7 @@ package huffman
 //Node ...
 type Node struct {
 	Charachter string
-	Weight     uint64
+	Weight     uint
 	CodePath   *BitArray
 	Nodes      []*Node
 }

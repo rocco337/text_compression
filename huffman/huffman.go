@@ -4,44 +4,41 @@ import (
 	"container/heap"
 	"errors"
 	"math/big"
-	"sort"
 )
 
 //Compress ...
-func Compress(input []byte) ([]byte, *HuffmanTree) {
-	characters := make(map[string]uint)
+func Compress(input []byte) ([]byte, uint, *Node) {
+	//create all leaf nodes
+	characters := createLeafNodes(input)
 
-	for _, b := range input {
-		characters[string(b)]++
-	}
-
-	//create tree
+	//create tree from leaf nodes
 	huffmanTree := createHuffmanTree(characters)
 
-	codeTables := make(map[string]*BitArray)
-
-	GenerateCodeTable(huffmanTree, &codeTables)
-
-	//construct codes from tree
-	temp := big.Int{}
-	byteIndex := 0
+	output := big.Int{}
+	outputByteIndex := 0
 	var totalLength uint
 
 	for _, b := range input {
 		char := string(b)
-		bitArray := codeTables[char]
-		totalLength += bitArray.Len
-		for _, bit := range bitArray.Value {
-			temp.SetBit(&temp, byteIndex, bit)
-			byteIndex++
+
+		//find bits from code table
+		codePath, err := FindCodePath(huffmanTree, char)
+		check(err)
+		//we have to hold length of all bits that are written
+		totalLength += codePath.Len
+
+		//write codePath bits to array tha holds output
+		for _, bit := range codePath.Value {
+			output.SetBit(&output, outputByteIndex, bit)
+			outputByteIndex++
 		}
 	}
 
-	return temp.Bytes(), &HuffmanTree{Root: huffmanTree, Length: totalLength}
+	return output.Bytes(), totalLength, huffmanTree
 }
 
 //Decompress ...
-func Decompress(compressed []byte, huffmanTree *HuffmanTree) string {
+func Decompress(compressed []byte, totalLength uint, huffmanTree *Node) string {
 	var decompressed = ""
 
 	var byteArray big.Int
@@ -50,10 +47,10 @@ func Decompress(compressed []byte, huffmanTree *HuffmanTree) string {
 	temp := BitArray{}
 	var i uint
 
-	for i < huffmanTree.Length {
+	for i < totalLength {
 		temp.Append(byteArray.Bit(int(i)))
 
-		char, err := FindCharacterByCodePath(huffmanTree.Root, &temp, 0)
+		char, err := FindCharacterByCodePath(huffmanTree, &temp, 0)
 		if err == nil {
 			decompressed += char
 			temp = BitArray{}
@@ -65,33 +62,43 @@ func Decompress(compressed []byte, huffmanTree *HuffmanTree) string {
 	return decompressed
 }
 
-func createHuffmanTree(characters map[string]uint) *Node {
-	nodes := make(PriorityQueue, len(characters))
+func createLeafNodes(input []byte) *PriorityQueue {
+	nodes := make(PriorityQueue, 0)
+	characters := make(map[string]*Node)
 
 	i := 0
+	for _, b := range input {
+		char := string(b)
+		if node, ok := characters[char]; ok {
+			node.Weight++
+		} else {
+			node := &Node{}
+			node.Charachter = char
+			node.Weight = 1
+			node.CodePath = new(BitArray)
 
-	//create all characters as leaf nodes. Make sure they are sorted
-	for _, key := range getSortedMapKeys(characters) {
-		node := &Node{}
-		node.Charachter = key
-		node.Weight = characters[key]
-		node.CodePath = new(BitArray)
-
-		nodes[i] = &Item{
-			value: node,
-			index: i,
+			nodes = append(nodes, &Item{
+				value: node,
+				index: i,
+			})
+			characters[char] = node
 		}
+
 		i++
 	}
 
+	return &nodes
+}
+
+func createHuffmanTree(nodes *PriorityQueue) *Node {
 	//initiate priority queue. Makes sure that we always pop nodes with lowest weight
-	heap.Init(&nodes)
+	heap.Init(nodes)
 
 	leftCodePath := uint(0)
 	rightCodePath := uint(1)
 
 	//construct huffman tree
-	for len(nodes) > 1 {
+	for nodes.Len() > 1 {
 		newNode := &Node{}
 		newNode.Nodes = make([]*Node, 2)
 		newNode.CodePath = new(BitArray)
@@ -102,45 +109,17 @@ func createHuffmanTree(characters map[string]uint) *Node {
 		newNode.Nodes[0].UpdateCodePath(leftCodePath)
 		newNode.Nodes[1].UpdateCodePath(rightCodePath)
 
-		for _, node := range newNode.Nodes {
-			//sum weights
-			newNode.Weight += node.Weight
-		}
+		newNode.Weight += newNode.Nodes[0].Weight + newNode.Nodes[1].Weight
 
 		newPriorityQueueItem := &Item{
 			value: newNode,
 		}
 
-		heap.Push(&nodes, newPriorityQueueItem)
+		heap.Push(nodes, newPriorityQueueItem)
 		nodes.update(newPriorityQueueItem, newPriorityQueueItem.value)
 	}
 
-	return nodes[0].value
-}
-
-func getSortedMapKeys(characters map[string]uint) []string {
-	keys := make([]string, 0, len(characters))
-	for k := range characters {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	return keys
-}
-
-//GenerateCodeTable ...
-func GenerateCodeTable(n *Node, codesTable *map[string]*BitArray) {
-	if n == nil {
-		return
-	}
-
-	if len(n.Charachter) > 0 {
-		(*codesTable)[n.Charachter] = n.CodePath
-	}
-
-	for _, node := range n.Nodes {
-		GenerateCodeTable(node, codesTable)
-	}
+	return (*nodes)[0].value
 }
 
 //FindCharacterByCodePath ...
@@ -167,8 +146,38 @@ func FindCharacterByCodePath(n *Node, codePath *BitArray, pointer uint) (string,
 	return "", errors.New("Cannot find chracter")
 }
 
-//HuffmanTree ...
-type HuffmanTree struct {
-	Root   *Node
-	Length uint
+//FindCodePath ...
+func FindCodePath(n *Node, char string) (*BitArray, error) {
+	returnError := func() error {
+		return errors.New("Cannot find character:" + char)
+	}
+
+	if n == nil {
+		return nil, returnError()
+	}
+
+	if n.Charachter == char {
+		return n.CodePath, nil
+	}
+
+	if len(n.Nodes) == 0 {
+		return nil, returnError()
+	}
+
+	codePath, err := FindCodePath(n.Nodes[0], char)
+	if err != nil {
+		codePath, err = FindCodePath(n.Nodes[1], char)
+		if err != nil {
+			return nil, returnError()
+		}
+
+	}
+
+	return codePath, nil
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }

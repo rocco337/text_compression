@@ -39,7 +39,7 @@ func Decompress(filePath string) string {
 		i++
 	}
 
-	var huffmanTree huffman.HuffmanTree
+	var huffmanTree huffman.Node
 	dec := gob.NewDecoder(bytes.NewReader(huffmanTreeBytes))
 	err = dec.Decode(&huffmanTree)
 	check(err)

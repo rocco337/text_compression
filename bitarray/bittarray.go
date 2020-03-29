@@ -1,4 +1,4 @@
-package huffman
+package bitarray
 
 import "errors"
 

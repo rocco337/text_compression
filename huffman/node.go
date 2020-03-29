@@ -1,10 +1,12 @@
 package huffman
 
+import "text_compression/bitarray"
+
 //Node ...
 type Node struct {
 	Charachter string
 	Weight     uint
-	CodePath   *BitArray
+	CodePath   *bitarray.BitArray
 	Nodes      []*Node
 }
 

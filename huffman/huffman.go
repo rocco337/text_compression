@@ -4,6 +4,7 @@ import (
 	"container/heap"
 	"errors"
 	"math/big"
+	"text_compression/bitarray"
 )
 
 //Compress ...
@@ -44,7 +45,7 @@ func Decompress(compressed []byte, totalLength uint32, huffmanTree *Node) string
 	var byteArray big.Int
 	byteArray.SetBytes(compressed)
 
-	temp := BitArray{}
+	temp := bitarray.BitArray{}
 	var i uint32
 
 	for i < totalLength {
@@ -53,7 +54,7 @@ func Decompress(compressed []byte, totalLength uint32, huffmanTree *Node) string
 		char, err := FindCharacterByCodePath(huffmanTree, &temp, 0)
 		if err == nil {
 			decompressed += char
-			temp = BitArray{}
+			temp = bitarray.BitArray{}
 		}
 
 		i++
@@ -75,7 +76,7 @@ func createLeafNodes(input []byte) *PriorityQueue {
 			node := &Node{}
 			node.Charachter = char
 			node.Weight = 1
-			node.CodePath = new(BitArray)
+			node.CodePath = new(bitarray.BitArray)
 
 			nodes = append(nodes, &Item{
 				value: node,
@@ -101,7 +102,7 @@ func createHuffmanTree(nodes *PriorityQueue) *Node {
 	for nodes.Len() > 1 {
 		newNode := &Node{}
 		newNode.Nodes = make([]*Node, 2)
-		newNode.CodePath = new(BitArray)
+		newNode.CodePath = new(bitarray.BitArray)
 
 		newNode.Nodes[0] = nodes.Pop().(*Node)
 		newNode.Nodes[1] = nodes.Pop().(*Node)
@@ -123,7 +124,7 @@ func createHuffmanTree(nodes *PriorityQueue) *Node {
 }
 
 //FindCharacterByCodePath ...
-func FindCharacterByCodePath(n *Node, codePath *BitArray, pointer uint) (string, error) {
+func FindCharacterByCodePath(n *Node, codePath *bitarray.BitArray, pointer uint) (string, error) {
 	if len(n.Charachter) > 0 && n.CodePath.Equals(codePath) {
 		return n.Charachter, nil
 	}
@@ -147,7 +148,7 @@ func FindCharacterByCodePath(n *Node, codePath *BitArray, pointer uint) (string,
 }
 
 //FindCodePath ...
-func FindCodePath(n *Node, char string) (*BitArray, error) {
+func FindCodePath(n *Node, char string) (*bitarray.BitArray, error) {
 	returnError := func() error {
 		return errors.New("Cannot find character:" + char)
 	}

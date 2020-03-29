@@ -18,34 +18,51 @@ func Decompress(filePath string) string {
 
 	reader := bufio.NewReader(file)
 
-	i := 0
+	readerIndex := 0
+
+	//read how long is huffmanTree in bytes
 	huffmanTreeLengthBytes := make([]byte, 8)
-
-	for i < 8 {
+	for readerIndex < len(huffmanTreeLengthBytes) {
 		currentByte, err := reader.ReadByte()
 		check(err)
 
-		huffmanTreeLengthBytes[i] = currentByte
-		i++
-	}
-	huffmanTreeLength := binary.LittleEndian.Uint64(huffmanTreeLengthBytes)
-	huffmanTreeBytes := make([]byte, huffmanTreeLength)
-	j := 0
-	for uint64(i) < huffmanTreeLength+8 {
-		currentByte, err := reader.ReadByte()
-		check(err)
-		huffmanTreeBytes[j] = currentByte
-		j++
-		i++
+		huffmanTreeLengthBytes[readerIndex] = currentByte
+		readerIndex++
 	}
 
+	//read bytes of huffman tree
+	huffmanTreeBytes := make([]byte, binary.LittleEndian.Uint64(huffmanTreeLengthBytes))
+	i := 0
+	for i < len(huffmanTreeBytes) {
+		currentByte, err := reader.ReadByte()
+		check(err)
+		huffmanTreeBytes[i] = currentByte
+		i++
+		readerIndex++
+	}
+
+	//decode huffmanTree from bytes
 	var huffmanTree huffman.Node
 	dec := gob.NewDecoder(bytes.NewReader(huffmanTreeBytes))
 	err = dec.Decode(&huffmanTree)
 	check(err)
 
-	compressedContentBytes := make([]byte, 0)
+	i = 0
+	//read total bit length of compressed content
+	compressedContentBitsLength := make([]byte, 4)
+	for i < 4 {
+		currentByte, err := reader.ReadByte()
+		check(err)
 
+		compressedContentBitsLength[i] = currentByte
+		readerIndex++
+		i++
+	}
+
+	compressedContentTotalLength := binary.LittleEndian.Uint32(compressedContentBitsLength)
+
+	//read compressed content
+	compressedContentBytes := make([]byte, 0)
 	for {
 		currentByte, err := reader.ReadByte()
 		if err != nil {
@@ -58,6 +75,6 @@ func Decompress(filePath string) string {
 		compressedContentBytes = append(compressedContentBytes, currentByte)
 	}
 
-	decompressed := huffman.Decompress(compressedContentBytes, &huffmanTree)
+	decompressed := huffman.Decompress(compressedContentBytes, compressedContentTotalLength, &huffmanTree)
 	return decompressed
 }

@@ -7,7 +7,7 @@ import (
 )
 
 //Compress ...
-func Compress(input []byte) ([]byte, uint, *Node) {
+func Compress(input []byte) ([]byte, uint32, *Node) {
 	//create all leaf nodes
 	characters := createLeafNodes(input)
 
@@ -16,7 +16,7 @@ func Compress(input []byte) ([]byte, uint, *Node) {
 
 	output := big.Int{}
 	outputByteIndex := 0
-	var totalLength uint
+	var totalLength uint32
 
 	for _, b := range input {
 		char := string(b)
@@ -25,7 +25,7 @@ func Compress(input []byte) ([]byte, uint, *Node) {
 		codePath, err := FindCodePath(huffmanTree, char)
 		check(err)
 		//we have to hold length of all bits that are written
-		totalLength += codePath.Len
+		totalLength += uint32(codePath.Len)
 
 		//write codePath bits to array tha holds output
 		for _, bit := range codePath.Value {
@@ -38,14 +38,14 @@ func Compress(input []byte) ([]byte, uint, *Node) {
 }
 
 //Decompress ...
-func Decompress(compressed []byte, totalLength uint, huffmanTree *Node) string {
+func Decompress(compressed []byte, totalLength uint32, huffmanTree *Node) string {
 	var decompressed = ""
 
 	var byteArray big.Int
 	byteArray.SetBytes(compressed)
 
 	temp := BitArray{}
-	var i uint
+	var i uint32
 
 	for i < totalLength {
 		temp.Append(byteArray.Bit(int(i)))

@@ -17,21 +17,27 @@ func Compress(filePath string, outputfilePath string) error {
 	fileBytes, err := ioutil.ReadFile(filePath)
 	check(err)
 
-	compressed, huffmanTree := huffman.Compress(fileBytes)
+	compressed, compressedTotalBitsLength, huffmanTree := huffman.Compress(fileBytes)
 
 	var huffmanTreeBytes bytes.Buffer
 	enc := gob.NewEncoder(&huffmanTreeBytes)
 	err = enc.Encode(huffmanTree)
 	check(err)
 
-	bs := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bs, uint64(huffmanTreeBytes.Len()))
+	huffmanTreeLength := make([]byte, 8)
+	binary.LittleEndian.PutUint64(huffmanTreeLength, uint64(huffmanTreeBytes.Len()))
+
 	file, err := os.Create(outputfilePath)
 	defer file.Close()
 	check(err)
 
-	file.Write(bs)
+	file.Write(huffmanTreeLength)
 	file.Write(huffmanTreeBytes.Bytes())
+
+	compressedContentBitsLength := make([]byte, 4)
+	binary.LittleEndian.PutUint32(compressedContentBitsLength, compressedTotalBitsLength)
+
+	file.Write(compressedContentBitsLength)
 	file.Write(compressed)
 
 	check(err)
